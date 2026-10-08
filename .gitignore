@@ -1,2 +1,10 @@
-files_transfer_project/file_details.json
-files_transfer_project/copy_log.txt
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Generated data
+file_details.json
+copy_log.txt
+output_video/
