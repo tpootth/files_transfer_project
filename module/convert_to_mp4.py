@@ -28,9 +28,17 @@ def convert_to_mp4(input_path, output_file, video_codec=DEFAULT_VIDEO_CODEC):
         raise RuntimeError("ffmpeg not found. Install ffmpeg and make sure it is on PATH.")
     except subprocess.CalledProcessError as e:
         print(f"Error converting {input_path}: {e}")
-        if os.path.exists(part_file):
-            os.remove(part_file)
+        _remove(part_file)
         return False
+    except KeyboardInterrupt:
+        # Stopped with Ctrl+C: don't leave a half-converted .part.mp4 behind.
+        _remove(part_file)
+        raise
 
     os.replace(part_file, output_file)
     return True
+
+
+def _remove(path):
+    if os.path.exists(path):
+        os.remove(path)
