@@ -14,6 +14,10 @@ from collections import Counter
 from module.convert_to_mp4 import DEFAULT_VIDEO_CODEC, convert_to_mp4
 from module.save_to_json import load_json, write_json
 
+# Extensions converted when no --file-filter is given. mp4 is left out because it is the target format.
+VIDEO_EXTENSIONS = {'ts', 'm2ts', 'mts', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mpg', 'mpeg',
+                    'm4v', '3gp', 'vob'}
+
 
 def output_name(item, output_path, duplicate_name):
     """Build the MP4 path. Files sharing a name with another file get their number appended."""
@@ -31,7 +35,7 @@ def process_videos(json_file_path, output_path, limit_video=None, file_filter=No
         file_filter = file_filter.lower().lstrip('.')
         candidates = [item for item in data if item['type'].lower() == file_filter]
     else:
-        candidates = [item for item in data if item['type'].lower() != 'mp4']
+        candidates = [item for item in data if item['type'].lower() in VIDEO_EXTENSIONS]
 
     todo_status = {'none', 'failed'} if retry_failed else {'none'}
     todo = [item for item in candidates if item['transfer_status'] in todo_status]
@@ -78,7 +82,7 @@ def main(argv=None):
     parser.add_argument('-l', '--limit', type=int, default=None,
                         help='maximum number of videos to convert in this run')
     parser.add_argument('-f', '--file-filter', default=None,
-                        help='only convert this extension, e.g. ts (default: everything except mp4)')
+                        help='only convert this extension, e.g. ts (default: common video types except mp4)')
     parser.add_argument('-c', '--codec', default=DEFAULT_VIDEO_CODEC,
                         help='ffmpeg video codec: h264_nvenc (GPU) or libx264 (CPU) (default: %(default)s)')
     parser.add_argument('--retry-failed', action='store_true',

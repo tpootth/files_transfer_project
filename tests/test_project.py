@@ -90,6 +90,36 @@ class ProcessVideosTest(unittest.TestCase):
                 process_videos(json_path, out, retry_failed=True)
                 self.assertEqual(conv.call_count, 1)
 
+    def test_default_skips_non_video_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ('a.ts', 'b.MKV', 'c.mp4', 'notes.txt', 'photo.jpg'):
+                touch(os.path.join(tmp, 'in', name))
+            json_path = os.path.join(tmp, 'files.json')
+            save_to_json(list_files(os.path.join(tmp, 'in')), json_path)
+
+            with mock.patch('convert_video.convert_to_mp4', return_value=True) as conv:
+                process_videos(json_path, os.path.join(tmp, 'out'))
+            converted = sorted(os.path.basename(c.args[0]) for c in conv.call_args_list)
+            self.assertEqual(converted, ['a.ts', 'b.MKV'])
+
+
+class ConvertToMp4Test(unittest.TestCase):
+    def test_ctrl_c_removes_part_file(self):
+        from module.convert_to_mp4 import convert_to_mp4
+        with tempfile.TemporaryDirectory() as tmp:
+            dst = os.path.join(tmp, 'clip.mp4')
+            part = os.path.join(tmp, 'clip.part.mp4')
+
+            def interrupted_ffmpeg(*args, **kwargs):
+                touch(part)
+                raise KeyboardInterrupt
+
+            with mock.patch('module.convert_to_mp4.subprocess.run', side_effect=interrupted_ffmpeg):
+                with self.assertRaises(KeyboardInterrupt):
+                    convert_to_mp4('in.ts', dst)
+            self.assertFalse(os.path.exists(part))
+            self.assertFalse(os.path.exists(dst))
+
 
 @unittest.skipUnless(subprocess.run(['which', 'ffmpeg'], capture_output=True).returncode == 0,
                      'ffmpeg not installed')
